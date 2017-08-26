@@ -1,0 +1,24 @@
+test/sample.mp3
+test/a.out
+include/atag/tmp.cpp
+
+# vim swap files
+[._]*.s[a-v][a-v]
+[._]*.sw[a-p]
+[._]sw[a-v][a-z]
+[._]sw[a-p]
+
+# vim session
+Session.vim
+
+# vim temp files
+.netrwhist
+*~
+
+# vim auto-generated tag files
+tags
+
+#include/atag/*.swp
+#include/atag/impl/*.swp
+#include/atag/detail/*.swp
+#test/*.swp
