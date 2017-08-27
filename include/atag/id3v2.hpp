@@ -128,7 +128,7 @@ simple_tag simple_parse(const Source& s);
 
 /** Parses and extracts all frames found in s. */
 template<typename Source>
-tag full_parse(const Source& s);
+tag parse(const Source& s);
 
 /**
  * This overload provides a way to parse only the frames specified in wanted_frames.

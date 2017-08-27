@@ -23,13 +23,22 @@ simple_tag parse(const Source& s)
         t.title = std::move(f.title);
         t.album = std::move(f.album);
         t.artist = std::move(f.artist);
+        //// TODO
+        //t.genre = std::move(d.genre);
         t.year = f.year;
         t.track_number = f.track_number;
     }
-    /*
-    if(id3v1::is_tagged(s))
+    else if(id3v1::is_tagged(s))
     {
+        id3v1::tag d = id3v1::parse(s);
+        t.title = std::move(d.title);
+        t.album = std::move(d.album);
+        t.artist = std::move(d.artist);
+        //t.genre = std::move(d.title);
+        t.track_number = d.track_number;
+        t.year = d.year;
     }
+    /*
     if(ape::is_tagged(s))
     {
     }

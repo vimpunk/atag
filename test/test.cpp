@@ -38,7 +38,7 @@ int main(int argc, const char** argv)
 
         {
             // this will produce the a lower representation of the id3v2 tag
-            id3v2::tag tag = id3v2::full_parse(source);
+            id3v2::tag tag = id3v2::parse(source);
             std::printf("tag:: version: %i, revision: %i, has_footer: %d, experimental: %d,"
                 " has extended header: %d, unsynchronized: %d, #frames: %i\n",
                 tag.version, tag.revision, tag.flags & id3v2::tag::has_footer,
@@ -62,7 +62,7 @@ int main(int argc, const char** argv)
         flac::tag tag = atag::flac::parse(source);
         std::printf("title: %s, album: %s, artist: %s, year: %i, track#: %i,"
             " sample rate: %i Hz, #channels: %i, #samples: %i\n",
-            tag.title.c_str(), tag.album.c_str(), tag.artist.c_str(), tag.date,
+            tag.title.c_str(), tag.album.c_str(), tag.artist.c_str(), tag.year,
             tag.track_number, tag.sample_rate, tag.num_channels, tag.num_samples);
     }
 }
