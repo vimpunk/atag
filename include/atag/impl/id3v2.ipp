@@ -1,8 +1,9 @@
 #ifndef ATAG_ID3_IMPL_HEADER
 #define ATAG_ID3_IMPL_HEADER
 
-#include "../id3v2.hpp"
 #include "../detail/type_traits.hpp"
+#include "../detail/io_util.hpp"
+#include "../id3v2.hpp"
 
 #include <cassert>
 #include <algorithm>
@@ -25,28 +26,6 @@
 namespace atag {
 namespace id3v2 {
 
-// ::util:: //
-
-// Both are endianness agnostic.
-template<typename InputIt>
-uint32_t parse_syncsafe_int(InputIt it)
-{
-    uint32_t t = 0;
-    t |= static_cast<uint32_t>(static_cast<uint8_t>(*it++)) << 3 * 7;
-    t |= static_cast<uint32_t>(static_cast<uint8_t>(*it++)) << 2 * 7;
-    t |= static_cast<uint32_t>(static_cast<uint8_t>(*it++)) <<     7;
-    t |= static_cast<uint32_t>(static_cast<uint8_t>(*it++));
-    return t;
-}
-
-template<typename OutputIt>
-void write_syncsafe_int(uint32_t t, OutputIt it)
-{
-    assert(0 && "TODO");
-}
-
-// ::data:: //
-
 // TODO use signed ints as these are not direct representations of the tag structure anyway
 struct tag_header
 {
@@ -64,40 +43,38 @@ struct frame_header
     int size;
 };
 
-// ::fn:: //
-
 /** s must be a buffer starting at the tag header. */
-template<typename String>
-tag_header parse_tag_header(const String& s) noexcept
+template<typename Byte>
+tag_header parse_tag_header(const Byte* s) noexcept
 {
     tag_header h;
     // We can skip the "ID3" identifier as find_tag_start implicitly verifies its presence.
     h.version = s[3];
     h.revision = s[4];
     h.flags = s[5];
-    h.size = parse_syncsafe_int(&s[6]);
+    h.size = detail::parse_syncsafe<int>(&s[6]);
 #ifdef ATAG_ENABLE_DEBUGGING
     std::printf("tag header:: magic: ID3, version: %i, revision: %i, size: %i, flags: "
         ATAG_BYTE_BINARY_PATTERN"\n", h.version, h.revision, h.size,
         ATAG_BYTE_TO_BINARY(h.flags));
 #endif // ATAG_ENABLE_DEBUGGING
     if(h.flags & tag::flags::extended)
-        h.extended_header_size = parse_syncsafe_int(&s[10]);
+        h.extended_header_size = detail::parse_syncsafe<int>(&s[10]);
     else
         h.extended_header_size = 0;
     return h;
 }
 
 /** s must be a buffer starting at the frame header. */
-template<typename String>
-frame_header parse_frame_header(const String& s) noexcept
+template<typename Byte>
+frame_header parse_frame_header(const Byte* s) noexcept
 {
     frame_header h;
     h.id = frame_id_from_string(s);
     h.flags = 0;
     h.flags |= s[8] << 8;
     h.flags |= s[9];
-    h.size = parse_syncsafe_int(&s[4]);
+    h.size = detail::parse_syncsafe<int>(&s[4]);
 #ifdef ATAG_ENABLE_DEBUGGING
     if((h.id != -1) && (h.size > 0))
         std::printf("frame header:: id: %s(%s), size: %i, flags: "
@@ -114,8 +91,8 @@ frame_header parse_frame_header(const String& s) noexcept
 }
 
 /** s must be a buffer starting at the frame body. */
-template<typename String>
-tag::frame parse_frame_body(const frame_header& header, const String& s)
+template<typename Byte>
+tag::frame parse_frame_body(const frame_header& header, const Byte* s)
 {
     // TODO FIXME we'll need a lot more branching here depending on the frame's type
     tag::frame frame;
@@ -158,7 +135,7 @@ inline int find_tag_start(const Source& s) noexcept
     const int n = s.size();
     if(matches_at("3DI", n - 10))
     {
-        const auto tag_size = parse_syncsafe_int(&s[n-4]);
+        const auto tag_size = detail::parse_syncsafe<int>(&s[n-4]);
         // since there is a header and a footer, subtract the 10 byte header size twice
         return n - tag_size - 20;
     }
@@ -178,19 +155,19 @@ bool is_tagged(const Source& s) noexcept
 template<typename Source>
 tag full_parse(const Source& s)
 {
-    return full_parse(s, [](const int _) { return true; });
+    return parse(s, [](const int _) { return true; });
 }
 
 template<typename Source>
-tag full_parse(const Source& s, const std::initializer_list<int>& wanted_frames)
+tag parse(const Source& s, const std::initializer_list<int>& wanted_frames)
 {
-    return full_parse(s, [&wanted_frames](const int id)
+    return parse(s, [&wanted_frames](const int id)
         { return std::find(wanted_frames.begin(), wanted_frames.end(), id)
                     != wanted_frames.end(); });
 }
 
 template<typename Source, typename Predicate>
-tag full_parse(const Source& s, Predicate pred)
+tag parse(const Source& s, Predicate pred)
 {
     //static_assert(detail::is_source<Source>::value, "Source requirements not met");
 

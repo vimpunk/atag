@@ -136,14 +136,14 @@ tag full_parse(const Source& s);
  * Example:
  *
  * using namespace atag;
- * id3v2::tag tag = id3v2::full_parse(source, {id3v2::composer, id3v2::album,
+ * id3v2::tag tag = id3v2::parse(source, {id3v2::composer, id3v2::album,
  *     id3v2::title, id3v2::year, id3v2::track_number};
  * for(const auto& frame : tag.frames) {
  *     // do something with frame
  * }
  */
 template<typename Source>
-tag full_parse(const Source& s, const std::initializer_list<int>& wanted_frames);
+tag parse(const Source& s, const std::initializer_list<int>& wanted_frames);
 
 /**
  * This overload expects a user defined comparator which should take a single int or
@@ -153,12 +153,12 @@ tag full_parse(const Source& s, const std::initializer_list<int>& wanted_frames)
  *
  * using namespace atag;
  * // parse all text information frames
- * auto tag1 = id3v2::full_parse(source1, id3v2::is_text_frame);
+ * auto tag1 = id3v2::parse(source1, id3v2::is_text_frame);
  * // or:
- * auto tag2 = id3v2::full_parse(source2, [](const int frame_id) { // ...  });
+ * auto tag2 = id3v2::parse(source2, [](const int frame_id) { // ...  });
  */
 template<typename Source, typename Predicate>
-tag full_parse(const Source& s, Predicate pred);
+tag parse(const Source& s, Predicate pred);
 
 enum hrid
 {

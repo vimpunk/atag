@@ -17,6 +17,15 @@ simple_tag parse(const Source& s)
     {
         t = id3v2::simple_parse(s);
     }
+    else if(flac::is_tagged(s))
+    {
+        flac::tag f = flac::parse(s);
+        t.title = std::move(f.title);
+        t.album = std::move(f.album);
+        t.artist = std::move(f.artist);
+        t.year = f.year;
+        t.track_number = f.track_number;
+    }
     /*
     if(id3v1::is_tagged(s))
     {
