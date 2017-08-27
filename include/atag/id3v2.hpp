@@ -1,13 +1,18 @@
 #ifndef ATAG_ID3V2_HEADER
 #define ATAG_ID3V2_HEADER
 
+#include "simple_tag.hpp"
+#include "genres.hpp"
+
 #include <vector>
+#include <array>
 #include <string>
 #include <initializer_list>
 
 namespace atag {
 namespace id3v2 {
 
+/** Each text frame includes a single byte to denote the encoding of its data. */
 enum encoding
 {
     iso_8859_1 = 0,
@@ -16,18 +21,26 @@ enum encoding
     utf8 = 3,
 };
 
-// TODO maybe provide two ways of parsing:
-// 1) parse the entire raw tag, as is, with every field in the header, extended header
-// and all frames (or just the ones specified by user
-// 2) a higher level alternative that extracts only the usual fields, such as the title,
-// album, artist, year etc
-// because right now it's sort of in between: a user can neither parse the full raw
-// tag (not sure how useful it is, as some of the info in the "raw tag" is just for
-// parsing), but they still have to loop through tags and find whatever they're looking
-// for...
-
+/**
+ * This is a lower level representation of the tag, however, it does not directly
+ * correspond to how the tag is represented in memory (i.e. the raw data). For instance,
+ * the extended header is not included, nor the footer, if one is present (as it's
+ * mostly just a copy of the header, i.e. bears no relevant information).
+ */
 struct tag
 {
+    enum flags : uint8_t
+    {
+        has_footer        = 1 << 4,
+        experimental      = 1 << 5,
+        extended          = 1 << 6,
+        unsynchronisation = 1 << 7,
+    };
+
+    uint8_t version;
+    uint8_t revision;
+    uint8_t flags;
+
     struct frame
     {
         /**
@@ -53,10 +66,25 @@ struct tag
             wcom, wcop, woaf, woar, woas, wors, wpay, wpub, wxxx,
         };
 
+        enum flags : uint16_t
+        {
+            // -- frame status flags --
+            tag_preservation  = 1 << 14,
+            file_preservation = 1 << 13,
+            read_only         = 1 << 12,
+            // -- frame format flags --
+            grouping_identity = 1 << 6,
+            compression       = 1 << 3,
+            encryption        = 1 << 2,
+            unsynchronisation = 1 << 1,
+            length_indicator  = 1 << 0,
+        };
+
         // Identifies what type of frame this is.
         uint8_t id;
         // The encoding of data if it's a text, irrelevant otherwise.
         uint8_t encoding;
+        uint16_t flags;
         std::string data;
     };
 
@@ -90,9 +118,17 @@ constexpr const char* frame_id_to_hrstring(const int id) noexcept;
 template<typename Source>
 bool is_tagged(const Source& s) noexcept;
 
+/**
+ * Parses and extracts the frames in the ID3v2 tag corresponding to those found
+ * in atag::tag. For most use cases this information should be enough and is recommended
+ * over full_parse, which parses all the frames (it's a bit slower).
+ */
+template<typename Source>
+simple_tag simple_parse(const Source& s);
+
 /** Parses and extracts all frames found in s. */
 template<typename Source>
-tag parse(const Source& s);
+tag full_parse(const Source& s);
 
 /**
  * This overload provides a way to parse only the frames specified in wanted_frames.
@@ -100,29 +136,29 @@ tag parse(const Source& s);
  * Example:
  *
  * using namespace atag;
- * id3v2::tag tag = id3v2::parse(source, {id3v2::composer, id3v2::album,
+ * id3v2::tag tag = id3v2::full_parse(source, {id3v2::composer, id3v2::album,
  *     id3v2::title, id3v2::year, id3v2::track_number};
  * for(const auto& frame : tag.frames) {
  *     // do something with frame
  * }
  */
 template<typename Source>
-tag parse(const Source& s, const std::initializer_list<int>& wanted_frames);
+tag full_parse(const Source& s, const std::initializer_list<int>& wanted_frames);
 
 /**
- *This overload expects a user defined comparator which should take a single int or
+ * This overload expects a user defined comparator which should take a single int or
  * tag::frame::id argument and return true if the frame satisfies the user's criteria.
  *
  * Example:
  *
  * using namespace atag;
  * // parse all text information frames
- * auto tag1 = id3v2::parse(source1, id3v2::is_text_frame);
+ * auto tag1 = id3v2::full_parse(source1, id3v2::is_text_frame);
  * // or:
- * auto tag2 = id3v2::parse(source2, [](const int frame_id) { // ...  });
+ * auto tag2 = id3v2::full_parse(source2, [](const int frame_id) { // ...  });
  */
 template<typename Source, typename Predicate>
-tag parse(const Source& s, Predicate pred);
+tag full_parse(const Source& s, Predicate pred);
 
 enum hrid
 {

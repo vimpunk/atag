@@ -25,6 +25,8 @@
 namespace atag {
 namespace id3v2 {
 
+// ::util:: //
+
 // Both are endianness agnostic.
 template<typename InputIt>
 uint32_t parse_syncsafe_int(InputIt it)
@@ -43,131 +45,99 @@ void write_syncsafe_int(uint32_t t, OutputIt it)
     assert(0 && "TODO");
 }
 
-// -- data --
+// ::data:: //
 
+// TODO use signed ints as these are not direct representations of the tag structure anyway
 struct tag_header
 {
-    enum flags : uint8_t
-    {
-        has_footer        = 1 << 4,
-        experimental      = 1 << 5,
-        extended          = 1 << 6,
-        unsynchronisation = 1 << 7,
-    };
-
-    std::array<uint8_t, 3> magic;
-    uint8_t version;
-    uint8_t revision;
-    uint8_t flags;
-    uint32_t size;
-    uint32_t extended_header_size;
+    char version;
+    char revision;
+    unsigned char flags;
+    int size;
+    int extended_header_size;
 };
-
-/*
-struct extended_header
-{
-    uint32_t size;
-    // Points to actual flags in the input buffer.
-    string_view flags;
-};
-*/
 
 struct frame_header
 {
-    enum flags : uint16_t
-    {
-        // -- frame status flags --
-        tag_preservation  = 1 << 14,
-        file_preservation = 1 << 13,
-        read_only         = 1 << 12,
-        // -- frame format flags --
-        grouping_identity = 1 << 6,
-        compression       = 1 << 3,
-        encryption        = 1 << 2,
-        unsynchronisation = 1 << 1,
-        length_indicator  = 1 << 0,
-    };
-
-    int id;
-    uint32_t size;
+    char id;
     uint16_t flags;
+    int size;
 };
 
-// -- functions --
+// ::fn:: //
 
+/** s must be a buffer starting at the tag header. */
 template<typename String>
 tag_header parse_tag_header(const String& s) noexcept
 {
     tag_header h;
-    std::copy(&s[0], &s[3], &h.magic[0]);
+    // We can skip the "ID3" identifier as find_tag_start implicitly verifies its presence.
     h.version = s[3];
     h.revision = s[4];
     h.flags = s[5];
     h.size = parse_syncsafe_int(&s[6]);
 #ifdef ATAG_ENABLE_DEBUGGING
-    std::printf("tag:: magic: %s, version: %i, revision: %i, size: %i, flags: "
-        ATAG_BYTE_BINARY_PATTERN"\n", h.magic.data(), h.version, h.revision, h.size,
+    std::printf("tag header:: magic: ID3, version: %i, revision: %i, size: %i, flags: "
+        ATAG_BYTE_BINARY_PATTERN"\n", h.version, h.revision, h.size,
         ATAG_BYTE_TO_BINARY(h.flags));
 #endif // ATAG_ENABLE_DEBUGGING
-    if(h.flags & tag_header::flags::extended)
+    if(h.flags & tag::flags::extended)
         h.extended_header_size = parse_syncsafe_int(&s[10]);
     else
         h.extended_header_size = 0;
     return h;
 }
 
-/*
-template<typename String>
-inline extended_header parse_extended_header(const String& s) noexcept
-{
-    extended_header h;
-    h.size = parse_syncsafe_int(&s[10]);
-    const int num_flag_bytes = s[11];
-    h.flags = string_view(&s[12], num_flag_bytes);
-    return h;
-}
-*/
-
+/** s must be a buffer starting at the frame header. */
 template<typename String>
 frame_header parse_frame_header(const String& s) noexcept
 {
     frame_header h;
     h.id = frame_id_from_string(s);
+    h.flags = 0;
+    h.flags |= s[8] << 8;
+    h.flags |= s[9];
     h.size = parse_syncsafe_int(&s[4]);
-    // TODO is this correct? (regarding endianness and such)
-    std::copy(&s[8], &s[10], &h.flags);
+#ifdef ATAG_ENABLE_DEBUGGING
+    if((h.id != -1) && (h.size > 0))
+        std::printf("frame header:: id: %s(%s), size: %i, flags: "
+            ATAG_BYTE_BINARY_PATTERN " " ATAG_BYTE_BINARY_PATTERN"\n",
+            frame_id_to_string(h.id), frame_id_to_hrstring(h.id), h.size,
+            ATAG_BYTE_TO_BINARY(h.flags));
+    /*
+    else
+        std::printf("frame header with invalid id or size: %c%c%c%c\n",
+            s[0],s[1],s[2],s[3]);
+    */
+#endif // ATAG_ENABLE_DEBUGGING
     return h;
 }
 
+/** s must be a buffer starting at the frame body. */
 template<typename String>
-tag::frame parse_frame_body(const frame_header& header, const String& data)
+tag::frame parse_frame_body(const frame_header& header, const String& s)
 {
     // TODO FIXME we'll need a lot more branching here depending on the frame's type
     tag::frame frame;
     frame.id = header.id;
+    frame.flags = header.flags;
     if(is_text_frame(header.id) || (frame.id == comments))
     {
         // textual information
-        frame.encoding = data[0];
-        frame.data = std::string(&data[1], &data[header.size]); // +1 to skip encoding
+        frame.encoding = s[0];
+        frame.data = std::string(&s[1], header.size - 1);
     }
     else
     {
-        frame.data = std::string(&data[0], &data[header.size]);
+        frame.data = std::string(&s[0], header.size);
     }
     return frame;
-}
-
-inline bool is_tag_header_valid(const tag_header& header) noexcept
-{
-    // TODO
-    return true;
 }
 
 inline bool is_frame_header_valid(const frame_header& header) noexcept
 {
     // TODO
-    return header.id != -1;
+    return (header.id != -1) && (header.size > 0);
 }
 
 template<typename Source>
@@ -206,47 +176,102 @@ bool is_tagged(const Source& s) noexcept
 }
 
 template<typename Source>
-tag parse(const Source& s)
+tag full_parse(const Source& s)
 {
-    return parse(s, [](const int _) { return true; });
+    return full_parse(s, [](const int _) { return true; });
 }
 
 template<typename Source>
-tag parse(const Source& s, const std::initializer_list<int>& wanted_frames)
+tag full_parse(const Source& s, const std::initializer_list<int>& wanted_frames)
 {
-    return parse(s, [&wanted_frames](const int id)
+    return full_parse(s, [&wanted_frames](const int id)
         { return std::find(wanted_frames.begin(), wanted_frames.end(), id)
                     != wanted_frames.end(); });
 }
 
 template<typename Source, typename Predicate>
-tag parse(const Source& s, Predicate pred)
+tag full_parse(const Source& s, Predicate pred)
 {
     //static_assert(detail::is_source<Source>::value, "Source requirements not met");
 
     if(s.size() < 10) { throw "source must be at least 10 bytes long"; }
 
     const int tag_start = find_tag_start(s);
-    const auto tag_header = parse_tag_header(&s[tag_start]);
-    if(!is_tag_header_valid(tag_header)) { return {}; }
+    if(tag_start == -1) { return {}; }
 
+    const auto tag_header = parse_tag_header(&s[tag_start]);
     tag tag;
+    tag.version = tag_header.version;
+    tag.revision = tag_header.revision;
+    tag.flags = tag_header.flags;
     // now parse the frames, starting after the header + extended header
-    for(auto i = tag_start + 10 + tag_header.extended_header_size; i < tag_header.size;)
+    for(auto i = tag_start + 10 + tag_header.extended_header_size,
+             n = tag_start + std::min(int(s.size()), tag_header.size);
+        i < n;)
     {
         const auto frame_header = parse_frame_header(&s[i]);
         if(is_frame_header_valid(frame_header) && pred(frame_header.id))
         {
             tag.frames.emplace_back(parse_frame_body(frame_header, &s[i+10]));
 #ifdef ATAG_ENABLE_DEBUGGING
-            std::printf("parsed frame:: id: %s(%s), size: %i, flags: "
-                ATAG_BYTE_BINARY_PATTERN " " ATAG_BYTE_BINARY_PATTERN", data: %s\n",
-                frame_id_to_hrstring(frame_header.id),
-                frame_id_to_string(frame_header.id), frame_header.size,
-                ATAG_BYTE_TO_BINARY(uint8_t(frame_header.flags >> 8)),
-                ATAG_BYTE_TO_BINARY(uint8_t(frame_header.flags)),
-                tag.frames.back().data.c_str());
+            std::printf("frame body:: %s\n", tag.frames.back().data.c_str());
 #endif // ATAG_ENABLE_DEBUGGING
+        }
+        i += frame_header.size + 10;
+    }
+    return tag;
+}
+
+/** s must be a buffer starting at the frame body. */
+template<typename Source>
+void simple_parse_dispatch(const Source& s,
+    const frame_header& header, simple_tag& tag)
+{
+    switch(header.id)
+    {
+    case hrid::original_title: case hrid::title:
+        if(tag.title.empty())
+            tag.title = std::move(parse_frame_body(header, s).data);
+        break;
+    case hrid::album:
+        if(tag.album.empty())
+            tag.album = std::move(parse_frame_body(header, s).data);
+        break;
+    case hrid::composer: case hrid::original_performer: case hrid::lead_artist:
+        if(tag.artist.empty())
+            tag.artist = std::move(parse_frame_body(header, s).data);
+        break;
+    case hrid::year:
+        tag.year = std::atoi(&s[1]);
+        break;
+    case hrid::track_number:
+        tag.track_number = std::atoi(&s[1]);
+        break;
+    case hrid::length:
+        tag.length = std::atoi(&s[1]);
+        break;
+    }
+}
+
+template<typename Source>
+simple_tag simple_parse(const Source& s)
+{
+    //static_assert(detail::is_source<Source>::value, "Source requirements not met");
+
+    if(s.size() < 10) { throw "source must be at least 10 bytes long"; }
+
+    const int tag_start = find_tag_start(s);
+    if(tag_start == -1) { return {}; }
+
+    const auto tag_header = parse_tag_header(&s[tag_start]);
+    simple_tag tag;
+    // now parse the frames, starting after the header + extended header
+    for(auto i = tag_start + 10 + tag_header.extended_header_size; i < tag_header.size;)
+    {
+        const auto frame_header = parse_frame_header(&s[i]);
+        if(is_frame_header_valid(frame_header))
+        {
+            simple_parse_dispatch(&s[i+10], frame_header, tag);
         }
         i += frame_header.size + 10;
     }
@@ -311,7 +336,7 @@ constexpr static const struct {
     {tag::frame::tope, "TOPE", "original performer"},
     {tag::frame::tory, "TORY", "original release year"},
     {tag::frame::town, "TOWN", "licensee"},
-    {tag::frame::tpe1, "TPE1", "lead performer(s)"},
+    {tag::frame::tpe1, "TPE1", "lead artist(s)"},
     {tag::frame::tpe2, "TPE2", "band/orchestra/accompaniment"},
     {tag::frame::tpe3, "TPE3", "conductor/performer"},
     {tag::frame::tpe4, "TPE4", "interpreted/remixed/modified by"},
@@ -342,8 +367,8 @@ constexpr static const struct {
     {tag::frame::wxxx, "WXXX", "user defined link"}
 };
 
-template<typename Source>
-int frame_id_from_string(const Source& s) noexcept
+template<typename String>
+int frame_id_from_string(const String& s) noexcept
 {
     const auto it = std::find_if(std::begin(frame_ids), std::end(frame_ids),
         [&s](const auto& f) { return std::equal(f.raw, f.raw + 4, &s[0]); });

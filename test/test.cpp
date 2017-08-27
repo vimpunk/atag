@@ -10,8 +10,7 @@
 void print_frame(const atag::id3v2::tag::frame& frame)
 {
     // textual information
-    println(atag::id3v2::frame_id_to_string(frame.id) << "("
-        << atag::id3v2::frame_id_to_hrstring(frame.id) << "): " << frame.data);
+    println(atag::id3v2::frame_id_to_hrstring(frame.id) << ": " << frame.data);
 }
 
 template<typename InputIt>
@@ -47,8 +46,25 @@ int main(int argc, const char** argv)
     {
         println("file has id3v2 tag!");
 
-        id3v2::tag tag = id3v2::parse(source);
-        println("#frames: " << tag.frames.size());
-        for(const auto& frame : tag.frames) { print_frame(frame); }
+        {
+            // this will produce the a lower representation of the id3v2 tag
+            id3v2::tag tag = id3v2::full_parse(source);
+            std::printf("tag:: version: %i, revision: %i, has_footer: %d, experimental: %d,"
+                " has extended header: %d, unsynchronized: %d, #frames: %i\n",
+                tag.version, tag.revision, tag.flags & id3v2::tag::has_footer,
+                tag.flags & id3v2::tag::experimental, tag.flags & id3v2::tag::extended,
+                tag.flags & id3v2::tag::unsynchronisation, tag.frames.size());
+            for(const auto& frame : tag.frames) { print_frame(frame); }
+        }
+
+        {
+            // while this produces only a few key fields, such as title, album, artist etc
+            simple_tag tag = id3v2::simple_parse(source);
+            println("title: " << tag.title);
+            println("album: " << tag.album);
+            println("artist: " << tag.artist);
+            println("year: " << tag.year);
+            println("track_number: " << tag.track_number);
+        }
     }
 }

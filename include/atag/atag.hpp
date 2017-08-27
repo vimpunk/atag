@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 
+#include "simple_tag.hpp"
+#include "genres.hpp"
 #include "id3v1.hpp"
 #include "id3v2.hpp"
 #include "flac.hpp"
@@ -11,27 +13,11 @@
 
 namespace atag {
 
-enum class genre
-{
-
-};
-
-struct tag
-{
-    std::string title;
-    std::string album;
-    std::string artist;
-    enum genre genre;
-    int track_number;
-    int length; // in ms
-    int year;
-};
-
 /**
  * Parses an APE, ID3v1, or ID3v2 tagged music file and produces a generic tag with
  * the most important details about the music.
  */
-template<typename Source> tag parse(const Source& s);
+template<typename Source> simple_tag parse(const Source& s);
 
 } // namespace atag
 
