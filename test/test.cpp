@@ -37,7 +37,7 @@ int main(int argc, const char** argv)
         println("file has id3v2 tag!");
 
         {
-            // this will produce the a lower representation of the id3v2 tag
+            // this will produce a lower level representation of the id3v2 tag
             id3v2::tag tag = id3v2::parse(source);
             std::printf("tag:: version: %i, revision: %i, has_footer: %d, experimental: %d,"
                 " has extended header: %d, unsynchronized: %d, #frames: %i\n",

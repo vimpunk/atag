@@ -123,31 +123,25 @@ void parse_vorbis_comment(const Byte* s, tag& tag)
         const int key_length = sep_pos - comment_begin;
         const int value_length = comment_end - value_begin;
         switch(key_length) {
+#define KEY_EQUALS(s) std::equal(comment_begin, comment_begin + sizeof(s) - 1, s)
         case 4:
             // Only parse date if it's 4 chars long representing the year.
             // TODO more flexibility
-            if(std::equal(comment_begin, comment_begin + 4, "DATE")
-               && value_length == 4)
+            if(KEY_EQUALS("DATE") && (value_length == 4))
             {
                 tag.year = std::atoi(value_begin);
             }
             break;
         case 5:
-            if(std::equal(comment_begin, comment_begin + 5, "ALBUM"))
-            {
+            if(KEY_EQUALS("ALBUM"))
                 tag.album = std::string(value_begin, value_length);
-            }
-            else if(std::equal(comment_begin, comment_begin + 5, "GENRE"))
-            {
+            else if(KEY_EQUALS("GENRE"))
                 tag.genre = std::string(value_begin, value_length);
-            }
-            else if(std::equal(comment_begin, comment_begin + 5, "TITLE"))
-            {
+            else if(KEY_EQUALS("TITLE"))
                 tag.title = std::string(value_begin, value_length);
-            }
             break;
         case 6:
-            if(std::equal(comment_begin, comment_begin + 6, "ARTIST"))
+            if(KEY_EQUALS("ARTIST"))
             {
                 // Vorbis allows multiple comments with the same key.
                 if(tag.artist.empty())
@@ -158,7 +152,7 @@ void parse_vorbis_comment(const Byte* s, tag& tag)
             break;
         case 9:
             // TODO does it make sense to treat 'performer' as 'artist'?
-            if(std::equal(comment_begin, comment_begin + 9, "PERFORMER"))
+            if(KEY_EQUALS("PERFORMER"))
             {
                 if(tag.artist.empty())
                     tag.artist = std::string(value_begin, value_length);
@@ -167,11 +161,12 @@ void parse_vorbis_comment(const Byte* s, tag& tag)
             }
             break;
         case 11:
-            if(std::equal(comment_begin, comment_begin + 11, "TRACKNUMBER"))
+            if(KEY_EQUALS("TRACKNUMBER"))
             {
                 tag.track_number = std::atoi(value_begin);
             }
             break;
+#undef KEY_EQUALS
         }
         offset += comment_length;
     }

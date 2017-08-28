@@ -120,20 +120,20 @@ inline bool is_frame_header_valid(const frame_header& header) noexcept
 template<typename Source>
 inline int find_tag_start(const Source& s) noexcept
 {
-    const auto matches_at = [&s](const char* magic, const int p)
+    const auto matches = [&s](const auto* p, const char* magic)
     {
-        return std::equal(&s[p], &s[p+3], magic)
-            && (s[p+3] <= 4) && (s[p+4] < 0xff)
-            && (s[p+6] < 0x80) && (s[p+7] < 0x80) && (s[p+8] < 0x80) && (s[p+9] < 0x80);
+        return std::equal(p, p + 3, magic)
+            && (p[3] <= 4) && (p[4] < 0xff)
+            && (p[6] < 0x80) && (p[7] < 0x80) && (p[8] < 0x80) && (p[9] < 0x80);
     };
 
     // most ID3v2 tags will be prepended to the file, so start with that
-    if(matches_at("ID3", 0)) { return 0; }
+    if(matches(&s[0], "ID3")) { return 0; }
 
     // see if the tag is appended (in which case it must have a footer at the very end
     // of the file)
     const int n = s.size();
-    if(matches_at("3DI", n - 10))
+    if(matches(&s[n-10], "3DI"))
     {
         const auto tag_size = detail::parse_syncsafe<int>(&s[n-4]);
         // since there is a header and a footer, subtract the 10 byte header size twice
@@ -153,7 +153,7 @@ bool is_tagged(const Source& s) noexcept
 }
 
 template<typename Source>
-tag full_parse(const Source& s)
+tag parse(const Source& s)
 {
     return parse(s, [](const int _) { return true; });
 }

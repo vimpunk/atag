@@ -102,8 +102,7 @@ inline bool is_url_frame(const int id) noexcept
 }
 
 /**
- * Returns -1 if s does not contain a valid frame id. s must be at least 4 bytes long,
- * otherwise undefined behaviour may ensue.
+ * Returns -1 if s does not contain a valid frame id.
  *
  * s has to be at least 4 bytes long.
  */
@@ -119,9 +118,9 @@ template<typename Source>
 bool is_tagged(const Source& s) noexcept;
 
 /**
- * Parses and extracts the frames in the ID3v2 tag corresponding to those found
- * in atag::tag. For most use cases this information should be enough and is recommended
- * over full_parse, which parses all the frames (it's a bit slower).
+ * Since an ID3v2 tag can contain information beyond what is usually needed, this method 
+ * only specifically parses the most important fields to identify music (title, album, 
+ * artist etc). It is thus slightly faster than the regular parse method.
  */
 template<typename Source>
 simple_tag simple_parse(const Source& s);
