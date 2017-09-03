@@ -95,7 +95,7 @@ template<typename Byte>
 void parse_vorbis_comment(const Byte* s, tag& tag)
 {
     // TODO refactor
-    const uint32_t vendor_length = detail::parse_le<uint32_t>(&s[0]);
+    const int vendor_length = detail::parse_le<uint32_t>(&s[0]);
 #ifdef ATAG_ENABLE_DEBUGGING
     if(vendor_length > 0)
     {
@@ -105,7 +105,7 @@ void parse_vorbis_comment(const Byte* s, tag& tag)
     }
 #endif
     int offset = vendor_length + 4;
-    const uint32_t comment_list_size = detail::parse_le<uint32_t>(&s[offset]);
+    const int comment_list_size = detail::parse_le<uint32_t>(&s[offset]);
     offset += 4;
     // TODO also make sure we don't iterate out of s
     for(auto i = 0; i < comment_list_size; ++i)
@@ -128,9 +128,7 @@ void parse_vorbis_comment(const Byte* s, tag& tag)
             // Only parse date if it's 4 chars long representing the year.
             // TODO more flexibility
             if(KEY_EQUALS("DATE") && (value_length == 4))
-            {
                 tag.year = std::atoi(value_begin);
-            }
             break;
         case 5:
             if(KEY_EQUALS("ALBUM"))
@@ -162,9 +160,7 @@ void parse_vorbis_comment(const Byte* s, tag& tag)
             break;
         case 11:
             if(KEY_EQUALS("TRACKNUMBER"))
-            {
                 tag.track_number = std::atoi(value_begin);
-            }
             break;
 #undef KEY_EQUALS
         }
@@ -183,7 +179,7 @@ tag parse(const Source& s)
     // https://xiph.org/flac/format.html#metadata_block
     tag tag;
     // Skip ahead by 4 to skip the 4 byte FLAC tag ID.
-    for(auto i = 4; i + 4 < s.size();)
+    for(auto i = 4; i + 4 < int(s.size());)
     {
         const auto block_header = parse_block_header(&s[i]);
         if(block_header.length <= 0)

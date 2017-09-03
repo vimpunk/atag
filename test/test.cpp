@@ -40,7 +40,7 @@ int main(int argc, const char** argv)
             // this will produce a lower level representation of the id3v2 tag
             id3v2::tag tag = id3v2::parse(source);
             std::printf("tag:: version: %i, revision: %i, has_footer: %d, experimental: %d,"
-                " has extended header: %d, unsynchronized: %d, #frames: %i\n",
+                " has extended header: %d, unsynchronized: %d, #frames: %lu\n",
                 tag.version, tag.revision, tag.flags & id3v2::tag::has_footer,
                 tag.flags & id3v2::tag::experimental, tag.flags & id3v2::tag::extended,
                 tag.flags & id3v2::tag::unsynchronisation, tag.frames.size());

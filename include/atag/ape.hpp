@@ -4,6 +4,7 @@
 #include "simple_tag.hpp"
 
 #include <vector>
+#include <string>
 
 namespace atag {
 namespace ape {
@@ -47,6 +48,7 @@ struct tag
         };
 
         int key;
+        // A UTF-8 encoded string or binary data, depending on the item type.
         std::string data;
     };
 
@@ -55,8 +57,7 @@ struct tag
 };
 
 /** Returns -1 if s does not contain a valid item key. */
-template<typename String>
-int item_key_from_string(const String& s) noexcept;
+int item_key_from_string(const std::string& s) noexcept;
 int item_key_from_string(const char* s, const int s_length) noexcept;
 
 /** Both return a nullptr if key is not a valid item key. */

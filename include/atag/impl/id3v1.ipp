@@ -32,11 +32,11 @@ template<typename Source> tag parse(const Source& s)
     pos += 30;
     tag.comment = std::string(pos, std::find(pos, pos + 28, 0));
     pos += 29;
-    tag.track_number = s[pos];
+    tag.track_number = *pos;
     pos += 1;
     tag.year = std::atoi(pos);
     pos += 4;
-    tag.genre = s[pos];
+    tag.genre = *pos;
 
     return tag;
 }

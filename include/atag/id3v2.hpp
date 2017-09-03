@@ -29,18 +29,6 @@ enum encoding
  */
 struct tag
 {
-    enum flags : uint8_t
-    {
-        has_footer        = 1 << 4,
-        experimental      = 1 << 5,
-        extended          = 1 << 6,
-        unsynchronisation = 1 << 7,
-    };
-
-    uint8_t version;
-    uint8_t revision;
-    uint8_t flags;
-
     struct frame
     {
         /**
@@ -80,15 +68,27 @@ struct tag
             length_indicator  = 1 << 0,
         };
 
+        std::string data;
+        uint16_t flags;
         // Identifies what type of frame this is.
         uint8_t id;
         // The encoding of data if it's a text, irrelevant otherwise.
         uint8_t encoding;
-        uint16_t flags;
-        std::string data;
     };
 
     std::vector<frame> frames;
+
+    enum flags : uint8_t
+    {
+        has_footer        = 1 << 4,
+        experimental      = 1 << 5,
+        extended          = 1 << 6,
+        unsynchronisation = 1 << 7,
+    };
+
+    uint8_t version;
+    uint8_t revision;
+    uint8_t flags;
 };
 
 inline bool is_text_frame(const int id) noexcept
@@ -121,6 +121,10 @@ bool is_tagged(const Source& s) noexcept;
  * Since an ID3v2 tag can contain information beyond what is usually needed, this method 
  * only specifically parses the most important fields to identify music (title, album, 
  * artist etc). It is thus slightly faster than the regular parse method.
+ *
+ * Note that if textual frames are not UTF-8 encoded, they are converted to UTF-8 for
+ * disambiguation, while "raw frames" produces by all parse overloads, keep their
+ * original encoding.
  */
 template<typename Source>
 simple_tag simple_parse(const Source& s);

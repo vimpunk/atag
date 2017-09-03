@@ -11,7 +11,8 @@ namespace ape {
 
 struct header
 {
-    enum {
+    enum
+    {
         contains_header = 1 << 31,
         contains_footer = 1 << 30,
         this_is_the_header = 1 << 30,
@@ -89,6 +90,7 @@ int find_tag_start(const Source& s)
         // If the tag is appended, the size field in footer/header contains the size of
         // all items and the footer, but not the initial header size.
         const int size = detail::parse_be<int>(&s[s.size() - 20]);
+        if(size <= 0) { return -1; }
         return s.size() - size - header::size;
     }
     else
@@ -134,7 +136,8 @@ tag parse(const Source& s)
             s.size() - offset + 8 + key_length + 1);
 
         const auto key = item_key_from_string(key_begin, key_length);
-        if(key != -1) tag.items.emplace_back(tag::item{key,
+        if(key != -1)
+            tag.items.emplace_back(tag::item{std::string(key_begin, key_length),
                 std::string(value_begin, value_length)});
         
         offset += 8 + key_length + 1 + value_length;
@@ -173,9 +176,7 @@ simple_tag simple_parse(const Source& s)
 #define KEY_EQUALS(s) std::equal(key_begin, key_begin + sizeof(s) - 1, s)
         case 4:
             if(KEY_EQUALS("YEAR"))
-            {
                 tag.year = std::atoi(value_begin);
-            }
             break;
         case 5:
             if(KEY_EQUALS("ALBUM"))
@@ -191,23 +192,20 @@ simple_tag simple_parse(const Source& s)
             break;
         case 6:
             if(KEY_EQUALS("ARTIST"))
-            {
+                // TODO FIXME values may be a list instead of a string, which means that
+                // entries are separated by 0x00 bytes. this is used if multiple artists
+                // worked on the song
                 tag.artist = std::string(value_begin, value_length);
-            }
             break;
         case 8:
             // TODO is this correct?
             if(!tag.artist.empty() && KEY_EQUALS("COMPOSER"))
-            {
                 tag.artist = std::string(value_begin, value_length);
-            }
             break;
         case 9:
             // TODO is this correct?
             if(!tag.artist.empty() && KEY_EQUALS("CONDUCTOR"))
-            {
                 tag.artist = std::string(value_begin, value_length);
-            }
             break;
 #undef KEY_EQUALS
         }
@@ -217,7 +215,7 @@ simple_tag simple_parse(const Source& s)
 }
 
 constexpr static const struct {
-    int code;
+    int key;
     const char* raw;
     const char* pretty;
 } item_keys[] = {
@@ -254,21 +252,48 @@ constexpr static const struct {
     {tag::item::year, nullptr, "unknown"}
 };
 
-template<typename String>
-int item_key_from_string(const String& s) noexcept
+inline int item_key_from_string(const std::string& s) noexcept
 {
+    /*
+    const auto it = std::find_if(std::begin(item_keys), std::end(item_keys),
+        [&s](const auto& f) { return std::equal(f.raw, f.raw + 4, &s[0]); });
+    if(it != std::end(item_keys))
+        return it->key;
+    else
+        return -1;
+    */
 }
 
-int item_key_from_string(const char* s, const int s_length) noexcept
+inline int item_key_from_string(const char* s, const int s_length) noexcept
 {
+    /*
+    const auto it = std::find_if(std::begin(item_keys), std::end(item_keys),
+        [s, s_length](const auto& f)
+        {
+            // TODO how to compare variable length const char* s without segfaulting?
+            return false;
+        });
+    if(it != std::end(item_keys))
+        return it->key;
+    else
+        return -1;
+    */
 }
 
 constexpr const char* item_key_to_string(const int key) noexcept
 {
+    if((key >= int(tag::item::abstract)) && (key <= int(tag::item::year)))
+        return item_keys[key].raw; 
+    else
+        return nullptr;
 }
 
 constexpr const char* item_key_to_hrstring(const int key) noexcept
 {
+    if((key >= int(tag::item::abstract)) && (key <= int(tag::item::year)))
+        return item_keys[key].pretty; 
+    else
+        return nullptr;
 }
 
 } // namespace ape

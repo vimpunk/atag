@@ -3,12 +3,15 @@
 
 #include "../detail/type_traits.hpp"
 #include "../detail/io_util.hpp"
+#include "../encoding.hpp"
 #include "../id3v2.hpp"
 
 #include <cassert>
 #include <algorithm>
 #include <iterator>
 #include <array>
+#include <locale>
+#include <codecvt>
 #ifdef ATAG_ENABLE_DEBUGGING
 # include <cstdio>
 # define ATAG_BYTE_BINARY_PATTERN "%c%c%c%c %c%c%c%c"
@@ -44,8 +47,8 @@ struct frame_header
 };
 
 /** s must be a buffer starting at the tag header. */
-template<typename Byte>
-tag_header parse_tag_header(const Byte* s) noexcept
+template<typename Ptr>
+tag_header parse_tag_header(Ptr s) noexcept
 {
     tag_header h;
     // We can skip the "ID3" identifier as find_tag_start implicitly verifies its presence.
@@ -54,8 +57,8 @@ tag_header parse_tag_header(const Byte* s) noexcept
     h.flags = s[5];
     h.size = detail::parse_syncsafe<int>(&s[6]);
 #ifdef ATAG_ENABLE_DEBUGGING
-    std::printf("tag header:: magic: ID3, version: %i, revision: %i, size: %i, flags: "
-        ATAG_BYTE_BINARY_PATTERN"\n", h.version, h.revision, h.size,
+    std::printf("tag header:: magic: ID3, version: %i, revision: %i, size: %i, flags: ("
+        ATAG_BYTE_BINARY_PATTERN")\n", h.version, h.revision, h.size,
         ATAG_BYTE_TO_BINARY(h.flags));
 #endif // ATAG_ENABLE_DEBUGGING
     if(h.flags & tag::flags::extended)
@@ -66,8 +69,8 @@ tag_header parse_tag_header(const Byte* s) noexcept
 }
 
 /** s must be a buffer starting at the frame header. */
-template<typename Byte>
-frame_header parse_frame_header(const Byte* s) noexcept
+template<typename Ptr>
+frame_header parse_frame_header(Ptr s) noexcept
 {
     frame_header h;
     h.id = frame_id_from_string(s);
@@ -77,22 +80,24 @@ frame_header parse_frame_header(const Byte* s) noexcept
     h.size = detail::parse_syncsafe<int>(&s[4]);
 #ifdef ATAG_ENABLE_DEBUGGING
     if((h.id != -1) && (h.size > 0))
-        std::printf("frame header:: id: %s(%s), size: %i, flags: "
-            ATAG_BYTE_BINARY_PATTERN " " ATAG_BYTE_BINARY_PATTERN"\n",
+        std::printf("frame header:: id: %s(%s), size: %i, flags: ("
+            ATAG_BYTE_BINARY_PATTERN " " ATAG_BYTE_BINARY_PATTERN")\n",
             frame_id_to_string(h.id), frame_id_to_hrstring(h.id), h.size,
-            ATAG_BYTE_TO_BINARY(h.flags));
-    /*
-    else
-        std::printf("frame header with invalid id or size: %c%c%c%c\n",
-            s[0],s[1],s[2],s[3]);
-    */
+            ATAG_BYTE_TO_BINARY(h.flags << 8), ATAG_BYTE_TO_BINARY(h.flags));
+        /*
+        std::printf("frame header:: id: %s(%s), size: %i, flags<compr:%i,"
+            " enc:%i, unsync:%i, len:%i>\n", frame_id_to_string(h.id),
+            frame_id_to_hrstring(h.id), h.size, h.flags & tag::frame::compression,
+            h.flags & tag::frame::encryption, h.flags & tag::frame::unsynchronisation,
+            h.flags & tag::frame::length_indicator);
+        */
 #endif // ATAG_ENABLE_DEBUGGING
     return h;
 }
 
 /** s must be a buffer starting at the frame body. */
-template<typename Byte>
-tag::frame parse_frame_body(const frame_header& header, const Byte* s)
+template<typename Ptr>
+tag::frame parse_frame_body(const frame_header& header, Ptr s)
 {
     // TODO FIXME we'll need a lot more branching here depending on the frame's type
     tag::frame frame;
@@ -102,7 +107,37 @@ tag::frame parse_frame_body(const frame_header& header, const Byte* s)
     {
         // textual information
         frame.encoding = s[0];
-        frame.data = std::string(&s[1], header.size - 1);
+#ifdef ATAG_ENABLE_DEBUGGING
+        std::printf("text frame encoding: %s\n", frame.encoding == iso_8859_1
+                ? "ISO-8859-1" : frame.encoding == utf16
+                    ? "UTF-16" : frame.encoding == utf16be
+                        ? "UTF-16BE" : "UTF8");
+#endif // ATAG_ENABLE_DEBUGGING
+        switch(frame.encoding) {
+        case encoding::iso_8859_1:
+            // TODO for now
+            frame.data = std::string(&s[1], header.size - 1);
+            break;
+        case encoding::utf16:
+        {
+            // header.size is the number of bytes while UTF-16 is at least 2 bytes wide.
+            // Also, we must start at the fourth byte, since the first is the encoding
+            // identifier, the second and third the BOM, which the spec requires.
+            frame.data = atag::encoding::utf16le_to_utf8(
+                reinterpret_cast<const char16_t*>(&s[3]), (header.size >> 1) - 1);
+            break;
+        }
+        case encoding::utf16be:
+        {
+            frame.data = atag::encoding::utf16be_to_utf8(
+                reinterpret_cast<const char16_t*>(&s[3]), (header.size >> 1) - 1);
+            break;
+        }
+        case encoding::utf8:
+            frame.data = std::string(&s[1], header.size - 1);
+            break;
+        }
+        // TODO we need to find all frames that have encoding and apply the same conv
     }
     else
     {
@@ -171,6 +206,7 @@ tag parse(const Source& s, Predicate pred)
 {
     //static_assert(detail::is_source<Source>::value, "Source requirements not met");
 
+    // TODO consider using std::error_code instead
     if(s.size() < 10) { throw "source must be at least 10 bytes long"; }
 
     const int tag_start = find_tag_start(s);
@@ -206,7 +242,7 @@ void simple_parse_dispatch(const Source& s,
 {
     switch(header.id)
     {
-    case hrid::original_title: case hrid::title:
+    case hrid::title: case hrid::original_title:
         if(tag.title.empty())
             tag.title = std::move(parse_frame_body(header, s).data);
         break;
@@ -214,7 +250,7 @@ void simple_parse_dispatch(const Source& s,
         if(tag.album.empty())
             tag.album = std::move(parse_frame_body(header, s).data);
         break;
-    case hrid::composer: case hrid::original_performer: case hrid::lead_artist:
+    case hrid::lead_artist: case hrid::composer: case hrid::original_performer:
         if(tag.artist.empty())
             tag.artist = std::move(parse_frame_body(header, s).data);
         break;

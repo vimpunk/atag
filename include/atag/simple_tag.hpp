@@ -24,6 +24,11 @@ struct simple_tag
     int year;
 };
 
+inline bool is_valid_tag(const simple_tag& t)
+{
+    return !t.title.empty() || !t.album.empty() || !t.artist.empty();
+}
+
 } // namespace atag
 
 #endif // ATAG_SIMPLE_TAG_HEADER
