@@ -108,15 +108,15 @@ tag::frame parse_frame_body(const frame_header& header, Ptr s)
         // textual information
         frame.encoding = s[0];
 #ifdef ATAG_ENABLE_DEBUGGING
-        std::printf("text frame encoding: %s\n", frame.encoding == iso_8859_1
+        std::printf("\ttext frame encoding: %s\n", frame.encoding == iso_8859_1
                 ? "ISO-8859-1" : frame.encoding == utf16
                     ? "UTF-16" : frame.encoding == utf16be
                         ? "UTF-16BE" : "UTF8");
 #endif // ATAG_ENABLE_DEBUGGING
         switch(frame.encoding) {
         case encoding::iso_8859_1:
-            // TODO for now
-            frame.data = std::string(&s[1], header.size - 1);
+            frame.data = atag::encoding::iso_8859_1_to_utf8(s + 1, header.size - 1);
+            //frame.data = std::string(s + 1, header.size - 1);
             break;
         case encoding::utf16:
         {
@@ -124,24 +124,24 @@ tag::frame parse_frame_body(const frame_header& header, Ptr s)
             // Also, we must start at the fourth byte, since the first is the encoding
             // identifier, the second and third the BOM, which the spec requires.
             frame.data = atag::encoding::utf16le_to_utf8(
-                reinterpret_cast<const char16_t*>(&s[3]), (header.size >> 1) - 1);
+                reinterpret_cast<const char16_t*>(s + 3), (header.size >> 1) - 1);
             break;
         }
         case encoding::utf16be:
         {
             frame.data = atag::encoding::utf16be_to_utf8(
-                reinterpret_cast<const char16_t*>(&s[3]), (header.size >> 1) - 1);
+                reinterpret_cast<const char16_t*>(s + 3), (header.size >> 1) - 1);
             break;
         }
         case encoding::utf8:
-            frame.data = std::string(&s[1], header.size - 1);
+            frame.data = std::string(s + 1, header.size - 1);
             break;
         }
         // TODO we need to find all frames that have encoding and apply the same conv
     }
     else
     {
-        frame.data = std::string(&s[0], header.size);
+        frame.data = std::string(s, header.size);
     }
     return frame;
 }

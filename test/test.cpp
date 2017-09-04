@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 #include <cassert>
 
 #define println(m) do std::cout << m << '\n'; while(0)
@@ -30,6 +31,9 @@ int main(int argc, const char** argv)
     assert(atag::detail::parse_syncsafe<int>(src) == 255);
 
     const std::string source = read_file_data(argc > 1 ? argv[1] : "sample.mp3");
+
+    std::vector<atag::simple_tag> dummy_tags;
+    std::sort(dummy_tags.begin(), dummy_tags.end(), atag::order::track_number());
 
     using namespace atag;
     if(id3v2::is_tagged(source))
