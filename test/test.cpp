@@ -1,4 +1,4 @@
-#include "../include/atag/atag.hpp"
+#include "../include/atag.hpp"
 #include "../include/atag/detail/io_util.hpp"
 
 #include <iostream>
@@ -32,6 +32,7 @@ int main(int argc, const char** argv)
 
     const std::string source = read_file_data(argc > 1 ? argv[1] : "sample.mp3");
 
+    // Make sure this compiles.
     std::vector<atag::simple_tag> dummy_tags;
     std::sort(dummy_tags.begin(), dummy_tags.end(), atag::order::track_number());
 

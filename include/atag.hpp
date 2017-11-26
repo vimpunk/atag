@@ -4,12 +4,12 @@
 #include <vector>
 #include <string>
 
-#include "simple_tag.hpp"
-#include "genres.hpp"
-#include "id3v1.hpp"
-#include "id3v2.hpp"
-#include "flac.hpp"
-#include "ape.hpp"
+#include "atag/simple_tag.hpp"
+#include "atag/genres.hpp"
+#include "atag/id3v1.hpp"
+#include "atag/id3v2.hpp"
+#include "atag/flac.hpp"
+#include "atag/ape.hpp"
 
 namespace atag {
 
@@ -83,6 +83,6 @@ struct artist
 } // namespace order
 } // namespace atag
 
-#include "impl/atag.ipp"
+#include "atag/impl/atag.ipp"
 
 #endif // ATAG_HEADER
