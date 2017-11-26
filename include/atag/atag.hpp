@@ -24,13 +24,14 @@ template<typename Source> simple_tag parse(const Source& s);
  * song title, album title, artist name etc.
  *
  * Example:
- *
+ * ```
  * std::vector<atag::simple_tag> tags;
  * // or
  * std::vector<atag::flac::tag> tags;
  * // ...
  * std::sort(tags.begin(), tags.end(), atag::order::track_number());
  * std::sort(tags.begin(), tags.end(), atag::order::title());
+ * ```
  */
 namespace order {
 

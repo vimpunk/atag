@@ -11,7 +11,7 @@
 
 void print_frame(const atag::id3v2::tag::frame& frame)
 {
-    // textual information
+    // Print textual information about the tag.
     println(atag::id3v2::frame_id_to_hrstring(frame.id) << ": " << frame.data);
 }
 
@@ -39,9 +39,8 @@ int main(int argc, const char** argv)
     if(id3v2::is_tagged(source))
     {
         println("file has id3v2 tag!");
-
         {
-            // this will produce a lower level representation of the id3v2 tag
+            // This will produce a lower level representation of the id3v2 tag.
             id3v2::tag tag = id3v2::parse(source);
             std::printf("tag:: version: %i, revision: %i, has_footer: %d, experimental: %d,"
                 " has extended header: %d, unsynchronized: %d, #frames: %lu\n",
@@ -50,9 +49,9 @@ int main(int argc, const char** argv)
                 tag.flags & id3v2::tag::unsynchronisation, tag.frames.size());
             for(const auto& frame : tag.frames) { print_frame(frame); }
         }
-
         {
-            // while this produces only a few key fields, such as title, album, artist etc
+            // While this produces a simpler tag with only a few key fields, such as
+            // title, album, artist etc.
             simple_tag tag = id3v2::simple_parse(source);
             std::printf("title: %s, album: %s, artist: %s, year: %i, track#: %i\n",
                 tag.title.c_str(), tag.album.c_str(), tag.artist.c_str(), tag.year,
@@ -69,4 +68,5 @@ int main(int argc, const char** argv)
             tag.title.c_str(), tag.album.c_str(), tag.artist.c_str(), tag.year,
             tag.track_number, tag.sample_rate, tag.num_channels, tag.num_samples);
     }
+    // TODO test idv1, ape
 }

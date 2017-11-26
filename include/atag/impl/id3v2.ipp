@@ -68,7 +68,7 @@ tag_header parse_tag_header(Ptr s) noexcept
     return h;
 }
 
-/** s must be a buffer starting at the frame header. */
+/** `s` must be a buffer starting at the frame header. */
 template<typename Ptr>
 frame_header parse_frame_header(Ptr s) noexcept
 {
@@ -105,7 +105,7 @@ tag::frame parse_frame_body(const frame_header& header, Ptr s)
     frame.flags = header.flags;
     if(is_text_frame(header.id) || (frame.id == comments))
     {
-        // textual information
+        // Textual information.
         frame.encoding = s[0];
 #ifdef ATAG_ENABLE_DEBUGGING
         std::printf("\ttext frame encoding: %s\n", frame.encoding == iso_8859_1
@@ -162,20 +162,20 @@ inline int find_tag_start(const Source& s) noexcept
             && (p[6] < 0x80) && (p[7] < 0x80) && (p[8] < 0x80) && (p[9] < 0x80);
     };
 
-    // most ID3v2 tags will be prepended to the file, so start with that
+    // Most ID3v2 tags will be prepended to the file, so start with that.
     if(matches(&s[0], "ID3")) { return 0; }
 
-    // see if the tag is appended (in which case it must have a footer at the very end
-    // of the file)
+    // See if the tag is appended (in which case it must have a footer at the very end
+    // of the file).
     const int n = s.size();
     if(matches(&s[n-10], "3DI"))
     {
         const auto tag_size = detail::parse_syncsafe<int>(&s[n-4]);
-        // since there is a header and a footer, subtract the 10 byte header size twice
+        // Since there is a header and a footer, subtract the 10 byte header size twice.
         return n - tag_size - 20;
     }
 
-    // no tag could be found
+    // No tag could be found.
     return -1;
 }
 
@@ -235,7 +235,7 @@ tag parse(const Source& s, Predicate pred)
     return tag;
 }
 
-/** s must be a buffer starting at the frame body. */
+/** `s` must be a buffer starting at the frame body. */
 template<typename Source>
 void simple_parse_dispatch(const Source& s,
     const frame_header& header, simple_tag& tag)
@@ -278,7 +278,7 @@ simple_tag simple_parse(const Source& s)
 
     const auto tag_header = parse_tag_header(&s[tag_start]);
     simple_tag tag;
-    // now parse the frames, starting after the header + extended header
+    // Now parse the frames, starting after the header + extended header.
     for(auto i = tag_start + 10 + tag_header.extended_header_size; i < tag_header.size;)
     {
         const auto frame_header = parse_frame_header(&s[i]);

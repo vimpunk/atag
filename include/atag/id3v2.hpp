@@ -158,7 +158,7 @@ tag parse(const Source& s, const std::initializer_list<int>& wanted_frames);
  * // parse all text information frames
  * auto tag1 = id3v2::parse(source1, id3v2::is_text_frame);
  * // or:
- * auto tag2 = id3v2::parse(source2, [](const int frame_id) { // ...  });
+ * auto tag2 = id3v2::parse(source2, [](const auto frame_id) { // ...  });
  */
 template<typename Source, typename Predicate>
 tag parse(const Source& s, Predicate pred);
