@@ -12,7 +12,6 @@ template<typename Source>
 simple_tag parse(const Source& s)
 {
     simple_tag t;
-    // TODO
     if(id3v2::is_tagged(s))
     {
         t = id3v2::simple_parse(s);
@@ -41,6 +40,7 @@ simple_tag parse(const Source& s)
     /*
     if(ape::is_tagged(s))
     {
+        // TODO
     }
     */
     return t;

@@ -34,7 +34,7 @@ int main(int argc, const char** argv)
 
     // Make sure this compiles.
     std::vector<atag::simple_tag> dummy_tags;
-    std::sort(dummy_tags.begin(), dummy_tags.end(), atag::order::track_number());
+    std::sort(dummy_tags.begin(), dummy_tags.end(), atag::order::track_number);
 
     using namespace atag;
     if(id3v2::is_tagged(source))

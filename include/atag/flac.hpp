@@ -19,11 +19,11 @@ struct tag
     int num_samples;
 };
 
-/** Tests whether s contains a FLAC tag. */
+/** Tests whether `s` contains a FLAC tag. */
 template<typename Source>
 bool is_tagged(const Source& s) noexcept;
 
-/** Parses and extracts all frames found in s. */
+/** Parses and extracts all frames found in `s`. */
 template<typename Source>
 tag parse(const Source& s);
 

@@ -25,7 +25,7 @@ enum encoding
  * This is a lower level representation of the tag, however, it does not directly
  * correspond to how the tag is represented in memory (i.e. the raw data). For instance,
  * the extended header is not included, nor the footer, if one is present (as it's
- * mostly just a copy of the header, i.e. bears no relevant information).
+ * mostly just a copy of the header, i.e. holds no relevant information).
  */
 struct tag
 {
@@ -104,16 +104,16 @@ inline bool is_url_frame(const int id) noexcept
 /**
  * Returns -1 if s does not contain a valid frame id.
  *
- * s has to be at least 4 bytes long.
+ * `s` has to be at least 4 bytes long.
  */
 template<typename String>
 int frame_id_from_string(const String& s) noexcept;
 
-/** Both return a nullptr if id is not a valid frame id. */
+/** Both return a nullptr if `id` is not a valid frame id. */
 constexpr const char* frame_id_to_string(const int id) noexcept;
 constexpr const char* frame_id_to_hrstring(const int id) noexcept;
 
-/** Tests whether s contains an ID3v2 tag, which may be prepended or appended. */
+/** Tests whether `s` contains an ID3v2 tag, which may be prepended or appended. */
 template<typename Source>
 bool is_tagged(const Source& s) noexcept;
 
@@ -124,7 +124,7 @@ bool is_tagged(const Source& s) noexcept;
  *
  * Note that if textual frames are not UTF-8 encoded, they are converted to UTF-8 for
  * disambiguation, while "raw frames" produces by all parse overloads, keep their
- * original encoding.
+ * original encoding, so these have to be converted by the user.
  */
 template<typename Source>
 simple_tag simple_parse(const Source& s);
@@ -137,28 +137,30 @@ tag parse(const Source& s);
  * This overload provides a way to parse only the frames specified in wanted_frames.
  *
  * Example:
- *
+ * ```
  * using namespace atag;
  * id3v2::tag tag = id3v2::parse(source, {id3v2::composer, id3v2::album,
- *     id3v2::title, id3v2::year, id3v2::track_number};
+ *     id3v2::title, id3v2::year, id3v2::track_number});
  * for(const auto& frame : tag.frames) {
- *     // do something with frame
+ *     // Do something with frame.
  * }
+ * ```
  */
 template<typename Source>
 tag parse(const Source& s, const std::initializer_list<int>& wanted_frames);
 
 /**
- * This overload expects a user defined comparator which should take a single int or
- * tag::frame::id argument and return true if the frame satisfies the user's criteria.
+ * This overload expects a user defined predicate which takes a single int or a
+ * `tag::frame::id` argument and returns true if the frame satisfies the user's criteria.
  *
  * Example:
- *
+ * ```
  * using namespace atag;
- * // parse all text information frames
+ * // Parse all text information frames.
  * auto tag1 = id3v2::parse(source1, id3v2::is_text_frame);
- * // or:
+ * // Or provide a custom predicate.
  * auto tag2 = id3v2::parse(source2, [](const auto frame_id) { // ...  });
+ * ```
  */
 template<typename Source, typename Predicate>
 tag parse(const Source& s, Predicate pred);

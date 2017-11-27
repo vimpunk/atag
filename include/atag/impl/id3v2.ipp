@@ -29,7 +29,6 @@
 namespace atag {
 namespace id3v2 {
 
-// TODO use signed ints as these are not direct representations of the tag structure anyway
 struct tag_header
 {
     char version;
@@ -46,7 +45,7 @@ struct frame_header
     int size;
 };
 
-/** s must be a buffer starting at the tag header. */
+/** `s` must be a buffer or a pointer to a buffer starting at the tag header. */
 template<typename Ptr>
 tag_header parse_tag_header(Ptr s) noexcept
 {
@@ -68,7 +67,7 @@ tag_header parse_tag_header(Ptr s) noexcept
     return h;
 }
 
-/** `s` must be a buffer starting at the frame header. */
+/** `s` must be a buffer or a pointer to a buffer starting at the frame header. */
 template<typename Ptr>
 frame_header parse_frame_header(Ptr s) noexcept
 {
@@ -84,18 +83,11 @@ frame_header parse_frame_header(Ptr s) noexcept
             ATAG_BYTE_BINARY_PATTERN " " ATAG_BYTE_BINARY_PATTERN")\n",
             frame_id_to_string(h.id), frame_id_to_hrstring(h.id), h.size,
             ATAG_BYTE_TO_BINARY(h.flags << 8), ATAG_BYTE_TO_BINARY(h.flags));
-        /*
-        std::printf("frame header:: id: %s(%s), size: %i, flags<compr:%i,"
-            " enc:%i, unsync:%i, len:%i>\n", frame_id_to_string(h.id),
-            frame_id_to_hrstring(h.id), h.size, h.flags & tag::frame::compression,
-            h.flags & tag::frame::encryption, h.flags & tag::frame::unsynchronisation,
-            h.flags & tag::frame::length_indicator);
-        */
 #endif // ATAG_ENABLE_DEBUGGING
     return h;
 }
 
-/** s must be a buffer starting at the frame body. */
+/** `s` must be a buffer or a pointer to a buffer starting at the frame body. */
 template<typename Ptr>
 tag::frame parse_frame_body(const frame_header& header, Ptr s)
 {
@@ -103,6 +95,8 @@ tag::frame parse_frame_body(const frame_header& header, Ptr s)
     tag::frame frame;
     frame.id = header.id;
     frame.flags = header.flags;
+    // TODO we need to find all frames that have encoding and apply the same conv (as
+    // frames other than text frames may have text in them, such as `comments`).
     if(is_text_frame(header.id) || (frame.id == comments))
     {
         // Textual information.
@@ -137,7 +131,6 @@ tag::frame parse_frame_body(const frame_header& header, Ptr s)
             frame.data = std::string(s + 1, header.size - 1);
             break;
         }
-        // TODO we need to find all frames that have encoding and apply the same conv
     }
     else
     {
@@ -190,15 +183,17 @@ bool is_tagged(const Source& s) noexcept
 template<typename Source>
 tag parse(const Source& s)
 {
-    return parse(s, [](const int _) { return true; });
+    return parse(s, [](int _) { return true; });
 }
 
 template<typename Source>
 tag parse(const Source& s, const std::initializer_list<int>& wanted_frames)
 {
     return parse(s, [&wanted_frames](const int id)
-        { return std::find(wanted_frames.begin(), wanted_frames.end(), id)
-                    != wanted_frames.end(); });
+        {
+            return std::find(wanted_frames.begin(), wanted_frames.end(), id)
+                    != wanted_frames.end();
+        });
 }
 
 template<typename Source, typename Predicate>
@@ -217,10 +212,9 @@ tag parse(const Source& s, Predicate pred)
     tag.version = tag_header.version;
     tag.revision = tag_header.revision;
     tag.flags = tag_header.flags;
-    // now parse the frames, starting after the header + extended header
+    // Now parse the frames, starting after the header + extended header.
     for(auto i = tag_start + 10 + tag_header.extended_header_size,
-             n = tag_start + std::min(int(s.size()), tag_header.size);
-        i < n;)
+             n = tag_start + std::min(int(s.size()), tag_header.size); i < n;)
     {
         const auto frame_header = parse_frame_header(&s[i]);
         if(is_frame_header_valid(frame_header) && pred(frame_header.id))
@@ -235,13 +229,12 @@ tag parse(const Source& s, Predicate pred)
     return tag;
 }
 
-/** `s` must be a buffer starting at the frame body. */
+/** `s` must be a buffer or a pointer to a buffer starting at the frame body. */
 template<typename Source>
 void simple_parse_dispatch(const Source& s,
     const frame_header& header, simple_tag& tag)
 {
-    switch(header.id)
-    {
+    switch(header.id) {
     case hrid::title: case hrid::original_title:
         if(tag.title.empty())
             tag.title = std::move(parse_frame_body(header, s).data);
@@ -296,7 +289,7 @@ constexpr static const struct {
     int id;
     const char* raw;
     const char* human_readable;
-} frame_ids[] = {
+} frame_ids_[] = {
     {tag::frame::aenc, "AENC", "audio encryption"},
     {tag::frame::apic, "APIC", "attached picture"},
     {tag::frame::aspi, "ASPI", "audio seek point index"},
@@ -383,9 +376,9 @@ constexpr static const struct {
 template<typename String>
 int frame_id_from_string(const String& s) noexcept
 {
-    const auto it = std::find_if(std::begin(frame_ids), std::end(frame_ids),
+    const auto it = std::find_if(std::begin(frame_ids_), std::end(frame_ids_),
         [&s](const auto& f) { return std::equal(f.raw, f.raw + 4, &s[0]); });
-    if(it != std::end(frame_ids))
+    if(it != std::end(frame_ids_))
         return it->id;
     else
         return -1;
@@ -394,7 +387,7 @@ int frame_id_from_string(const String& s) noexcept
 constexpr const char* frame_id_to_string(const int id) noexcept
 {
     if((id >= int(tag::frame::aenc)) && (id <= int(tag::frame::wxxx)))
-        return frame_ids[id].raw; 
+        return frame_ids_[id].raw; 
     else
         return nullptr;
 }
@@ -402,7 +395,7 @@ constexpr const char* frame_id_to_string(const int id) noexcept
 constexpr const char* frame_id_to_hrstring(const int id) noexcept
 {
     if((id >= int(tag::frame::aenc)) && (id <= int(tag::frame::wxxx)))
-        return frame_ids[id].human_readable; 
+        return frame_ids_[id].human_readable; 
     else
         return nullptr;
 }

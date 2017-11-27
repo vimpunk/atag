@@ -14,8 +14,8 @@
 namespace atag {
 
 /**
- * Parses an APE, ID3v1, or ID3v2 tagged music file and produces a generic tag with
- * the most important details about the music.
+ * Parses an APE, ID3v1, or ID3v2 tagged audio file and produces a generic tag with
+ * only the most important details about the file.
  */
 template<typename Source> simple_tag parse(const Source& s);
 

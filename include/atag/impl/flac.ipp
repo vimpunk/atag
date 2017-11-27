@@ -47,7 +47,7 @@ struct block_header
     int length;
 };
 
-/** Tests whether s contains a FLAC tag. */
+/** Tests whether `s` contains a FLAC tag. */
 template<typename Source>
 bool is_tagged(const Source& s) noexcept
 {
@@ -55,7 +55,7 @@ bool is_tagged(const Source& s) noexcept
     return (s.size() >= 5) && std::equal(&s[0], &s[4], "fLaC");
 }
 
-/* s must be a buffer or pointer to a buffer starting at the block header. */
+/* `s` must be a buffer or pointer to a buffer starting at the block header. */
 template<typename Byte>
 block_header parse_block_header(const Byte* s)
 {
@@ -72,7 +72,7 @@ block_header parse_block_header(const Byte* s)
     return h;
 }
 
-/* s must be a buffer or pointer to a buffer starting at the streaminfo block's data. */
+/* `s` must be a buffer or pointer to a buffer starting at the streaminfo block's data. */
 template<typename Byte>
 void parse_streaminfo(const Byte* s, tag& tag)
 {
@@ -88,7 +88,7 @@ void parse_streaminfo(const Byte* s, tag& tag)
 }
 
 /**
- * s must be a buffer or pointer to a buffer starting at the vorbis comment
+ * `s` must be a buffer or pointer to a buffer starting at the vorbis comment
  * block's data.
  */
 template<typename Byte>
@@ -168,7 +168,7 @@ void parse_vorbis_comment(const Byte* s, tag& tag)
     }
 }
 
-/** Parses and extracts all frames found in s. */
+/** Parses and extracts all frames found in `s`. */
 template<typename Source>
 tag parse(const Source& s)
 {

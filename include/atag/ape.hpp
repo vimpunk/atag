@@ -56,7 +56,7 @@ struct tag
     std::vector<item> items;
 };
 
-/** Returns -1 if s does not contain a valid item key. */
+/** Returns -1 if `s` does not contain a valid item key. */
 int item_key_from_string(const std::string& s) noexcept;
 int item_key_from_string(const char* s, const int s_length) noexcept;
 
