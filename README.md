@@ -6,9 +6,9 @@ Audio tag parsing C++ header-only library, supporting ID3v1, ID3v2, FLAC, APE an
 
 atag consists purely of header files, so just place the contents of the `include` directory in your system-wide or your project's include folder.
 
-## Note
+## Work in progress
 
-This will eventually support audio tag editing as well for many different formats, but it's still a work in progress. So for now only tag parsing is supported for the above listed tag types.
+This library is still a work-in-progress, but it will eventually support most other audio tag formats as well as full audio tag editing for all of them. So for now only tag parsing is supported for the above listed tag types.
 
 ## Example
 
@@ -26,7 +26,7 @@ int main(int argc, const char** argv)
 {
     // Parse cmd line arguments.
     if(argc < 2) {
-        std::printf("usage: %s, <path-to-music-file> [detailedtag]\n", argv[0]);
+        std::printf("usage: %s, <path-to-music-file> [detailed]\n", argv[0]);
         return -1;
     }
     bool detailed = false;

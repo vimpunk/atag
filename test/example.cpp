@@ -9,7 +9,7 @@ int main(int argc, const char** argv)
 {
     // Parse cmd line arguments.
     if(argc < 2) {
-        std::printf("usage: %s, <path-to-music-file> [detailedtag]\n", argv[0]);
+        std::printf("usage: %s, <path-to-music-file> [detailed]\n", argv[0]);
         return -1;
     }
     bool detailed = false;
