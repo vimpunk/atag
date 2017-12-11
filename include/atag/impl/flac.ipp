@@ -1,6 +1,7 @@
 #ifndef ATAG_FLAC_IMPL_HEADER
 #define ATAG_FLAC_IMPL_HEADER
 
+#include "../detail/type_traits.hpp"
 #include "../detail/io_util.hpp"
 #include "../flac.hpp"
 
@@ -51,7 +52,7 @@ struct block_header
 template<typename Source>
 bool is_tagged(const Source& s) noexcept
 {
-    //static_assert(detail::is_source<Source>::value, "Source requirements not met");
+    static_assert(detail::is_source<Source>::value, "Source requirements not met");
     return (s.size() >= 5) && std::equal(&s[0], &s[4], "fLaC");
 }
 
@@ -172,7 +173,7 @@ void parse_vorbis_comment(const Byte* s, tag& tag)
 template<typename Source>
 tag parse(const Source& s)
 {
-    //static_assert(detail::is_source<Source>::value, "Source requirements not met");
+    static_assert(detail::is_source<Source>::value, "Source requirements not met");
 
     if(!is_tagged(s)) { return {}; }
 

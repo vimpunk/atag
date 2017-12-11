@@ -175,8 +175,7 @@ inline int find_tag_start(const Source& s) noexcept
 template<typename Source>
 bool is_tagged(const Source& s) noexcept
 {
-    // FIXME doesn't work properly
-    //static_assert(detail::is_source<Source>::value, "Source requirements not met");
+    static_assert(detail::is_source<Source>::value, "Source requirements not met");
     return find_tag_start(s) != -1;
 }
 
@@ -199,7 +198,7 @@ tag parse(const Source& s, const std::initializer_list<int>& wanted_frames)
 template<typename Source, typename Predicate>
 tag parse(const Source& s, Predicate pred)
 {
-    //static_assert(detail::is_source<Source>::value, "Source requirements not met");
+    static_assert(detail::is_source<Source>::value, "Source requirements not met");
 
     // TODO consider using std::error_code instead
     if(s.size() < 10) { throw "source must be at least 10 bytes long"; }
@@ -262,7 +261,7 @@ void simple_parse_dispatch(const Source& s,
 template<typename Source>
 simple_tag simple_parse(const Source& s)
 {
-    //static_assert(detail::is_source<Source>::value, "Source requirements not met");
+    static_assert(detail::is_source<Source>::value, "Source requirements not met");
 
     if(s.size() < 10) { throw "source must be at least 10 bytes long"; }
 

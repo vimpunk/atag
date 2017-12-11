@@ -1,6 +1,7 @@
 #ifndef ATAG_APE_IMPL
 #define ATAG_APE_IMPL
 
+#include "../detail/type_traits.hpp"
 #include "../detail/io_util.hpp"
 #include "../ape.hpp"
 
@@ -102,12 +103,15 @@ int find_tag_start(const Source& s)
 template<typename Source>
 bool is_tagged(const Source& s)
 {
+    static_assert(detail::is_source<Source>::value, "Source requirements not met");
     return (s.size() >= header::size) && (find_tag_start(s) != -1);
 }
 
 template<typename Source>
 tag parse(const Source& s)
 {
+    static_assert(detail::is_source<Source>::value, "Source requirements not met");
+
     if(s.size() < header::size) { return {}; }
 
     const int tag_start = find_tag_start(s);
@@ -148,6 +152,8 @@ tag parse(const Source& s)
 template<typename Source>
 simple_tag simple_parse(const Source& s)
 {
+    static_assert(detail::is_source<Source>::value, "Source requirements not met");
+
     if(s.size() < header::size) { return {}; }
 
     const int tag_start = find_tag_start(s);

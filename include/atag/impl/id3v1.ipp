@@ -1,6 +1,7 @@
 #ifndef ATAG_ID3V1_IMPL_HEADER
 #define ATAG_ID3V1_IMPL_HEADER
 
+#include "../detail/type_traits.hpp"
 #include "../id3v1.hpp"
 
 #include <algorithm>
@@ -12,6 +13,8 @@ enum { tag_size = 128 };
 
 template<typename Source> bool is_tagged(const Source& s)
 {
+    static_assert(detail::is_source<Source>::value, "Source requirements not met");
+
     if(s.size() < tag_size) { return false; }
     const auto tag_begin = &s[s.size() - tag_size];
     return std::equal(tag_begin, tag_begin + 3, "TAG");
@@ -19,6 +22,8 @@ template<typename Source> bool is_tagged(const Source& s)
 
 template<typename Source> tag parse(const Source& s)
 {
+    static_assert(detail::is_source<Source>::value, "Source requirements not met");
+
     if(!is_tagged(s)) { return {}; }
 
     auto pos = &s[s.size() - tag_size] + 3;

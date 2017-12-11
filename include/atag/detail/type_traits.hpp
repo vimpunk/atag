@@ -20,8 +20,8 @@ struct is_source : std::false_type {};
 
 template<typename T>
 struct is_source<T, void_t<
-        decltype(std::declval<T>().operator[]()),
-        decltype(std::declval<T>().size())>>
+        decltype(std::declval<T&>().operator[]()),
+        decltype(std::declval<T&>().size())>>
     : std::true_type {};
 
 } // namespace detail
