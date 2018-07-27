@@ -1,6 +1,6 @@
 # atag
 
-Audio tag parsing C++ header-only library, supporting ID3v1, ID3v2, FLAC, APE and (soon) others
+Audio tag parsing C++ header-only library, supporting ID3v1, ID3v2, FLAC, APE and (at some point, maybe) others
 
 ## Installation
 
